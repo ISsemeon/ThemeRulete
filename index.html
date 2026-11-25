@@ -8,40 +8,40 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Тема дня">
-<meta name="theme-color" content="#FFE45C">
+<meta name="theme-color" content="#F5EEDC">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=Unbounded:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Lobster&family=Oswald:wght@500;600;700&family=PT+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <!-- ГЛАВНАЯ -->
 <section class="screen" id="s-home">
-  <div class="stickers" aria-hidden="true">
-    <svg class="st st1" viewBox="0 0 100 100"><path d="M50 4l12 30 32 4-24 21 7 32-27-17-27 17 7-32L6 38l32-4z"/></svg>
-    <svg class="st st2" viewBox="0 0 100 100"><circle cx="50" cy="50" r="42"/></svg>
-    <svg class="st st3" viewBox="0 0 120 40"><path d="M4 20c12-16 22-16 28 0s16 16 28 0 16-16 28 0 16 16 28 0" fill="none"/></svg>
-    <svg class="st st4" viewBox="0 0 100 100"><rect x="14" y="14" width="72" height="72" rx="14"/></svg>
-  </div>
-  <div class="home-top">
-    <span class="tag" id="h-date"></span>
-  </div>
-  <h1 class="home-title"><span>Тема</span><span>дня</span></h1>
+  <div class="home-top"><span class="rule"></span><span class="h-date" id="h-date"></span><span class="rule"></span></div>
+  <h1 class="home-title"><span class="script">Тема</span><span class="big">ДНЯ</span><span class="spaced">20 минут · 1 видео</span></h1>
   <div class="ticker" aria-hidden="true"><div class="ticker-track" id="ticker"></div></div>
   <div class="start-wrap">
+    <div class="burst" aria-hidden="true"></div>
     <button class="start" id="start">
+      <svg class="ring" viewBox="0 0 200 200" aria-hidden="true">
+        <defs><path id="ring-path" d="M100 100m-82 0a82 82 0 1 1 164 0a82 82 0 1 1-164 0"/></defs>
+        <circle cx="100" cy="100" r="70"/>
+        <text><textPath href="#ring-path" textLength="510" lengthAdjust="spacing">КРУТИ ✦ ИЗУЧАЙ 20 МИНУТ ✦ ОБЪЯСНИ ЗА МИНУТУ ✦</textPath></text>
+      </svg>
       <span class="start-label" id="start-label">Крутить</span>
       <span class="start-sub" id="start-sub"></span>
     </button>
   </div>
-  <nav class="home-nav">
-    <button class="btn white" data-go="gallery"><span class="ico">◍</span>Галерея</button>
-    <button class="btn white" data-go="settings"><span class="ico">✱</span>Настройки</button>
-  </nav>
+  <footer class="home-foot">
+    <nav class="home-nav">
+      <button class="btn white" data-go="gallery">Галерея</button>
+      <button class="btn white" data-go="settings">Настройки</button>
+    </nav>
+  </footer>
 </section>
 
 <!-- РОЗЫГРЫШ -->
@@ -53,6 +53,8 @@
   </div>
   <div class="result" id="result">
     <div class="ticket">
+      <div class="t-head">билет</div>
+      <div class="r-ico" id="r-ico"></div>
       <span class="tag" id="r-area"></span>
       <h2 class="title-xl" id="r-title"></h2>
     </div>
@@ -107,15 +109,17 @@
 <section class="screen" id="s-topic">
   <div class="tp-head">
     <header class="bar"><button class="back" id="tp-back" aria-label="Назад">←</button><span class="tag" id="tp-area"></span></header>
+    <div class="tp-ico" id="tp-ico"></div>
     <h2 class="title-l" id="tp-title"></h2>
     <div class="tp-date" id="tp-date"></div>
   </div>
   <div class="tp-body">
-    <div class="card tp-video" id="tp-video"></div>
+    <div class="polaroid"><div id="tp-video"></div><div class="cap" id="tp-cap"></div></div>
     <div class="row"><button class="btn white" id="tp-share">В Фото</button><button class="btn white" id="tp-rerec">Переснять</button></div>
     <div class="label-row"><label class="label" for="tp-notes">Заметки</label><span class="saved" id="tp-saved">сохранено</span></div>
     <textarea id="tp-notes" placeholder="Что запомнилось…"></textarea>
     <label class="label">Фото</label>
+    <p class="drop-hint">нажми ＋ или перетащи фото сюда</p>
     <div class="photos" id="tp-photos"></div>
     <input type="file" id="tp-photo-in" accept="image/*" multiple hidden>
   </div>

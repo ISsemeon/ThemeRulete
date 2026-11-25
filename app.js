@@ -2,7 +2,9 @@
 const $ = s => document.querySelector(s);
 const KEY = 'tema-dnya.v2';
 const TIMER_MIN = 20, REC_SEC = 60;
-const PALETTE = ['#7DA2FF','#4FD1FF','#B69CFF','#3EE0C5','#7BE37B','#FF7A8A','#FF8FD8','#FFA24C','#FFE14D','#C8F05A','#9CC2FF','#5CE1E6','#E6B26A','#FF9C73','#D7A6FF','#FF6FB0'];
+const PALETTE = ['#8FB3C9','#7FB7B0','#A99AC4','#9CC5A1','#B5C46B','#E8907F','#E7A6B8','#EBA061','#EEC55A','#C9C77A','#A9C0D4','#86C3C7','#D2AE7E','#E59A79','#C3A5C6','#E88FA0'];
+// старые яркие цвета областей -> ретро
+const RETRO = {'#7DA2FF':'#8FB3C9','#4FD1FF':'#7FB7B0','#B69CFF':'#A99AC4','#3EE0C5':'#9CC5A1','#7BE37B':'#B5C46B','#FF7A8A':'#E8907F','#FF8FD8':'#E7A6B8','#FFA24C':'#EBA061','#EEC55A':'#EEC55A','#C8F05A':'#C9C77A','#9CC2FF':'#A9C0D4','#5CE1E6':'#86C3C7','#E6B26A':'#D2AE7E','#FF9C73':'#E59A79','#D7A6FF':'#C3A5C6','#F2C879':'#E3C48E','#FF6FB0':'#E88FA0'};
 const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
@@ -24,7 +26,7 @@ function ensureIds(nodes, path = '', used = new Set()){
   nodes.forEach((n, i) => {
     if (!n.id || used.has(n.id)) { let id = 'n' + hash(path + '/' + n.name), k = 1; while (used.has(id)) id = 'n' + hash(path + '/' + n.name + '#' + k++); n.id = id; }
     used.add(n.id);
-    if (path === '' && !n.color) n.color = PALETTE[i % PALETTE.length];
+    if (path === '') n.color = RETRO[(n.color || '').toUpperCase()] || n.color || PALETTE[i % PALETTE.length];
     if (n.children) ensureIds(n.children, path + '/' + n.name, used);
   });
 }
@@ -51,12 +53,39 @@ function reindex(){
 reindex();
 const isLeaf = n => !n.children;
 function areaOf(id){ let a = id; while (parentOf[a]) a = parentOf[a]; return byId[a]; }
-const colorOf = id => (areaOf(id) && areaOf(id).color) || '#FFE14D';
+const colorOf = id => (areaOf(id) && areaOf(id).color) || '#EEC55A';
 function pathOf(id){ const p = []; for (let a = id; a; a = parentOf[a]) p.unshift(a); return p; }
 function doneCount(n){ return isLeaf(n) ? (S.progress[n.id] ? 1 : 0) : n.children.reduce((s, c) => s + doneCount(c), 0); }
 function leafCount(n){ return isLeaf(n) ? 1 : n.children.reduce((s, c) => s + leafCount(c), 0); }
 function splitEmoji(name){ const m = name.match(/^(\p{Extended_Pictographic}[️‍\p{Extended_Pictographic}]*)\s*(.*)$/u); return m ? [m[1], m[2]] : ['', name]; }
-function setTint(c){ document.documentElement.style.setProperty('--c', c || '#FFE14D'); }
+const areaName = id => splitEmoji(areaOf(id).name)[1];
+
+// анимированные иконки областей (ключ — название без эмодзи)
+const INF = 'M32 32c-6-8-10-12-16-12a12 12 0 0 0 0 24c6 0 10-4 16-12s10-12 16-12a12 12 0 0 1 0 24c-6 0-10-4-16-12z';
+const EYE = 'M4 32s11-17 28-17 28 17 28 17-11 17-28 17S4 32 4 32z';
+const FLASK = 'M26 6h12M28 6v18L13 51a5 5 0 0 0 4.5 7h29a5 5 0 0 0 4.5-7L36 24V6';
+const ICONS = {
+  'математика': `<circle class="f" cx="32" cy="32" r="22"/><path class="thin" d="M4 32h56M32 4v56"/><g class="vc a-rot"><path d="M32 32h22"/><circle class="r" cx="54" cy="32" r="4.5"/></g><circle class="d" cx="32" cy="32" r="2.5"/>`,
+  'физика': `<g class="vc a-rot"><ellipse cx="32" cy="32" rx="27" ry="10"/><ellipse cx="32" cy="32" rx="27" ry="10" transform="rotate(60 32 32)"/><ellipse cx="32" cy="32" rx="27" ry="10" transform="rotate(120 32 32)"/><circle class="r" cx="59" cy="32" r="3.5"/><circle class="r" cx="45.5" cy="55.4" r="3.5"/><circle class="r" cx="18.5" cy="8.6" r="3.5"/></g><circle class="y o a-beat" cx="32" cy="32" r="6"/>`,
+  'космос': `<ellipse cx="32" cy="34" rx="27" ry="8" transform="rotate(-18 32 34)"/><circle class="f" cx="32" cy="34" r="14"/><path class="thin" d="M20 29c6 3 18 3 24 0M19 38c6 3 20 3 26 0"/><path d="M5 34a27 8 0 0 0 54 0" transform="rotate(-18 32 34)"/><g class="vc a-rot" style="transform-origin:32px 34px"><circle class="y" cx="32" cy="4" r="3.5"/></g><path class="o a-blink" d="M8 6v6M5 9h6"/><path class="o a-blink d2" d="M55 52v6M52 55h6"/><path class="o a-blink d3" d="M56 6v4M54 8h4"/>`,
+  'химия': `<path class="f" stroke="none" d="${FLASK}"/><path class="r" stroke="none" d="M18.5 42h27l5.5 9.5a5 5 0 0 1-4.5 6.5h-29a5 5 0 0 1-4.5-6.5z"/><path d="${FLASK}"/><circle class="d a-rise" cx="28" cy="52" r="2"/><circle class="d a-rise d2" cx="35" cy="48" r="1.6"/><circle class="d a-rise d4" cx="31" cy="54" r="1.3"/>`,
+  'биология': `<g class="vc a-twist"><path class="thin" d="M25 12h14M30 20h4M24 26h16M24 38h16M30 44h4M25 52h14"/><path d="M20 4c0 14 24 14 24 28s-24 14-24 28"/><path style="stroke:var(--red)" d="M44 4c0 14-24 14-24 28s24 14 24 28"/></g>`,
+  'тело и здоровье': `<g class="o a-beat"><path class="r" d="M32 55S7 40 7 23a12.5 12.5 0 0 1 25-4 12.5 12.5 0 0 1 25 4c0 17-25 32-25 32z"/><path style="stroke:var(--card)" d="M15 23a8 8 0 0 1 7-7"/></g>`,
+  'мозг': `<path class="f" d="M32 12c-4-6-15-5-16 3-8 1-11 10-6 15-4 6 0 14 7 14 1 8 11 10 15 3 4 7 14 5 15-3 7 0 11-8 7-14 5-5 2-14-6-15-1-8-12-9-16-3z"/><path d="M32 12v41"/><path class="thin" d="M20 24c4 0 6 3 6 6M44 24c-4 0-6 3-6 6M18 38c4-1 7 1 8 4M46 38c-4-1-7 1-8 4"/><circle class="r a-blink" cx="22" cy="21" r="3"/><circle class="r a-blink d2" cx="43" cy="31" r="3"/><circle class="r a-blink d3" cx="24" cy="42" r="3"/><circle class="r a-blink d4" cx="40" cy="47" r="2.5"/>`,
+  'психология': `<path class="f" d="M40 58V47c8 0 12-5 12-11l5-6-5-3C52 14 43 6 31 6 18 6 9 15 9 28c0 8 4 14 9 17v13"/><path class="o a-rot" style="stroke:var(--red)" d="M31 27a2.5 2.5 0 1 1 2.5 2.5 5 5 0 1 1-5-5 7.5 7.5 0 1 1 7.5 7.5"/>`,
+  'мышление': `<path class="y" d="M24 44c0-7-9-11-9-21a17 17 0 0 1 34 0c0 10-9 14-9 21z"/><path d="M25 50h14M27 56h10"/><path class="thin" d="M29 44V32l3 3 3-3v12"/><path class="a-blink" d="M32 -5v5M10 4l4 4M54 4l-4 4M2 22h5M62 22h-5"/>`,
+  'экономика и решения': `<path d="M32 12v42M20 56h24"/><g class="vc a-rock" style="transform-origin:32px 12px"><path d="M8 12h48"/><path class="y" d="M8 12 2 28h12z"/><path class="y" d="M56 12l-6 16h12z"/></g><circle class="r" cx="32" cy="11" r="3.5"/>`,
+  'философия': `<path d="${INF}" style="stroke-width:7;opacity:.15"/><path d="${INF}"/><path class="a-trace" pathLength="100" d="${INF}" style="stroke:var(--red);stroke-width:5"/>`,
+  'технологии': `<g class="o a-rot"><circle cx="26" cy="27" r="17" style="stroke-width:7;stroke-dasharray:5.3 3.6"/><circle class="f" cx="26" cy="27" r="13"/><circle cx="26" cy="27" r="4"/></g><g class="o" style="animation:a-rot 4.67s linear infinite reverse"><circle cx="48" cy="49" r="10" style="stroke-width:6;stroke-dasharray:4.5 3.35"/><circle class="y" cx="48" cy="49" r="7"/><circle cx="48" cy="49" r="2.5"/></g>`,
+  'земля': `<defs><clipPath id="clip-globe"><circle cx="32" cy="32" r="24"/></clipPath></defs><circle class="f" cx="32" cy="32" r="24"/><g clip-path="url(#clip-globe)"><path class="thin" d="M8 32h48M11 20h42M11 44h42"/><ellipse class="vc a-meridian" cx="32" cy="32" rx="22" ry="24"/><ellipse class="vc a-meridian" style="animation-delay:-2s;stroke:var(--red)" cx="32" cy="32" rx="22" ry="24"/></g><circle cx="32" cy="32" r="24"/><path class="thin" d="M32 8v48"/>`,
+  'язык': `<path class="f" d="M12 12h40a6 6 0 0 1 6 6v20a6 6 0 0 1-6 6H30L18 54V44h-6a6 6 0 0 1-6-6V18a6 6 0 0 1 6-6z"/><circle class="d a-hop d2" cx="21" cy="28" r="3.2"/><circle class="d a-hop d1" cx="32" cy="28" r="3.2"/><circle class="r a-hop" cx="43" cy="28" r="3.2"/>`,
+  'общество': `<g class="a-hop d2"><circle class="f" cx="14" cy="27" r="6"/><path class="f" d="M4 52a10 10 0 0 1 20 0z"/></g><g class="a-hop d1"><circle class="y" cx="32" cy="20" r="7"/><path class="y" d="M20 52a12 12 0 0 1 24 0z"/></g><g class="a-hop"><circle class="f" cx="50" cy="27" r="6"/><path class="f" d="M40 52a10 10 0 0 1 20 0z"/></g><path d="M2 56h60"/>`,
+  'история идей': `<path class="f" d="M21 6c0 14 10 20 10 26S21 44 21 58h22c0-14-10-20-10-26s10-12 10-26z"/><path class="r o a-sand-top" stroke="none" d="M24 13h16c-1.5 6-5 9-8 12-3-3-6.5-6-8-12z"/><path class="a-fall" style="stroke:var(--red);stroke-width:2" d="M32 30v24"/><path class="r o a-sand-bot" stroke="none" d="M22 57c2-6 5-9 10-10 5 1 8 4 10 10z"/><path d="M16 6h32M16 58h32"/>`,
+  'искусство и восприятие': `<defs><clipPath id="clip-eye"><path d="${EYE}"/></clipPath></defs><g class="vc a-lid"><path class="f" d="${EYE}"/><g clip-path="url(#clip-eye)"><g class="a-look"><circle class="r" cx="32" cy="32" r="10"/><circle class="d" cx="32" cy="32" r="4.5"/><circle cx="35" cy="29" r="1.5" style="fill:var(--card);stroke:none"/></g></g><path d="${EYE}"/></g>`,
+  _: `<path class="y o a-rot" style="animation-duration:14s" d="M32 6l7 17 18 2-14 12 4 18-15-9-15 9 4-18L7 25l18-2z"/>`,
+};
+const areaIcon = id => `<svg class="aico" viewBox="0 0 64 64" aria-hidden="true">${ICONS[areaName(id).toLowerCase().trim()] || ICONS._}</svg>`;
+function setTint(c){ document.documentElement.style.setProperty('--c', c || '#EEC55A'); }
 
 // ================= медиа (IndexedDB) =================
 const DB = (() => {
@@ -138,7 +167,7 @@ function renderHome(){
     if (T.phase === 'chosen') label = 'Дальше';
     if (T.phase === 'study') label = leftMs() > 0 ? fmt(leftMs()) : 'Видео';
     if (T.phase === 'record') label = 'Видео';
-    if (T.phase === 'done') label = '✓';
+    if (T.phase === 'done') { label = 'Ещё тема'; sub = '✓ ' + topic.name; }
   }
   $('#start-label').textContent = label; $('#start-sub').textContent = sub;
 }
@@ -149,7 +178,7 @@ $('#start').onclick = () => {
   else if (T.phase === 'chosen') go('spin');
   else if (T.phase === 'study') go('study');
   else if (T.phase === 'record') { recFor = T.topicId; go('record'); }
-  else if (T.phase === 'done') openTopic(T.topicId);
+  else if (T.phase === 'done') { S.today = newToday(); save(); go('spin'); spin(); }
 };
 setInterval(() => {
   if (S.today.date !== dayKey()) { S.today = newToday(); save(); if (current === 'home') renderHome(); }
@@ -178,7 +207,7 @@ function renderSpin(){
   if (T.phase === 'chosen' && !spinning) {
     const n = byId[T.topicId]; setTint(colorOf(n.id));
     $('#s-spin').classList.add('done');
-    $('#r-area').textContent = areaOf(n.id).name; $('#r-title').textContent = n.name;
+    $('#r-area').textContent = areaName(n.id); $('#r-ico').innerHTML = areaIcon(n.id); $('#r-title').textContent = n.name;
   }
 }
 function spin(){
@@ -221,7 +250,7 @@ function startTimer(){
 function renderStudy(){
   const n = byId[S.today.topicId]; if (!n) return go('home');
   setTint(colorOf(n.id));
-  $('#st-area').textContent = areaOf(n.id).name; $('#st-title').textContent = n.name;
+  $('#st-area').textContent = areaName(n.id); $('#st-title').textContent = n.name;
   tickStudy();
 }
 let rang = false;
@@ -250,7 +279,7 @@ function setNotes(id, v){ if (S.progress[id]) S.progress[id].notes = v; else S.t
 function renderRecord(){
   const n = byId[recFor]; if (!n) return go('home');
   setTint(colorOf(n.id));
-  $('#rc-area').textContent = areaOf(n.id).name; $('#rc-title').textContent = n.name;
+  $('#rc-area').textContent = areaName(n.id); $('#rc-title').textContent = n.name;
   $('#rc-notes').value = getNotes(n.id);
   resetCam();
 }
@@ -322,7 +351,7 @@ function gBuild(spawn){
   field.querySelectorAll('.bubble').forEach(b => b.remove());
   const rect = field.getBoundingClientRect(); G.W = rect.width; G.H = rect.height;
   const pid = G.stack[G.stack.length - 1], parent = pid && byId[pid];
-  const tint = parent ? colorOf(pid) : '#FFE14D'; setTint(tint);
+  const tint = parent ? colorOf(pid) : '#EEC55A'; setTint(tint);
   // хлебные крошки
   $('#g-crumbs').innerHTML = ['Моё поле', ...G.stack.map(id => splitEmoji(byId[id].name)[1])].map(s => `<span>${esc(s)}</span>`).join('');
   requestAnimationFrame(() => { const c = $('#g-crumbs'); c.scrollLeft = c.scrollWidth; });
@@ -331,7 +360,7 @@ function gBuild(spawn){
   $('#g-empty').hidden = total > 0;
   // центр
   const [ce, cn] = parent ? splitEmoji(parent.name) : ['', 'Моё поле'];
-  G.center = mkBubble({id: pid || null, center: true, color: tint, r: m * .17, emoji: ce, name: cn, count: total, x: G.W / 2, y: G.H / 2});
+  G.center = mkBubble({id: pid || null, center: true, color: tint, r: m * .17, icon: pid ? areaIcon(pid) : '', name: cn, count: total, x: G.W / 2, y: G.H / 2});
   // дети: размер по числу пройденных, суммарная площадь ~ 35% поля
   const max = Math.max(1, ...kids.map(doneCount));
   const w = kids.map(k => isLeaf(k) ? 1 : .55 + .45 * Math.sqrt(doneCount(k) / max));
@@ -340,7 +369,7 @@ function gBuild(spawn){
   const sx = spawn ? spawn.x : G.W / 2, sy = spawn ? spawn.y : G.H / 2;
   G.nodes = kids.map((k, i) => {
     const [e, n] = splitEmoji(k.name), ang = i / kids.length * Math.PI * 2 + Math.random() * .3;
-    return mkBubble({id: k.id, leaf: isLeaf(k), color: colorOf(k.id), r: base * w[i], emoji: isLeaf(k) ? '' : e, name: n,
+    return mkBubble({id: k.id, leaf: isLeaf(k), color: colorOf(k.id), r: base * w[i], icon: areaIcon(k.id), name: n,
       count: isLeaf(k) ? 0 : doneCount(k), x: sx + Math.cos(ang) * 20, y: sy + Math.sin(ang) * 20, delay: i * 40});
   });
   cancelAnimationFrame(G.raf); G.raf = requestAnimationFrame(gStep);
@@ -349,8 +378,10 @@ function mkBubble(o){
   const el = document.createElement('div');
   el.className = 'bubble pop' + (o.center ? ' center' : '');
   el.style.cssText = `--bc:${o.color};width:${2 * o.r}px;height:${2 * o.r}px;animation-delay:${o.delay || 0}ms`;
-  const fs = o.leaf ? Math.max(10, Math.min(19, 1.45 * o.r / Math.sqrt(o.name.length))) : Math.max(11, Math.min(22, o.r * .24));
-  el.innerHTML = `${o.emoji ? `<div class="e" style="font-size:${Math.min(44, o.r * .45)}px">${o.emoji}</div>` : ''}<div class="n" style="font-size:${fs}px">${esc(o.name)}</div>${o.count ? `<div class="k" style="font-size:${fs * .85}px">${o.count}</div>` : ''}`;
+  // подпись — бумажная плашка поверх пузыря, может быть шире него
+  const fs = o.center ? Math.max(o.icon ? 14 : 17, Math.min(26, o.r * (o.icon ? .2 : .3))) : Math.max(13, Math.min(17, o.r * .3));
+  const name = o.name.length > 52 ? o.name.slice(0, 50) + '…' : o.name;
+  el.innerHTML = `${o.icon || ''}<div class="n" style="--fs:${fs}px;--mw:${Math.max(2 * o.r * 1.25, 120)}px">${esc(name)}</div>${o.count && !o.center ? `<div class="k">${o.count}</div>` : ''}`;
   $('#g-field').appendChild(el);
   const node = Object.assign(o, {el, vx: 0, vy: 0, ph: Math.random() * 6.28});
   el.addEventListener('pointerdown', e => gDown(e, node));
@@ -423,7 +454,7 @@ async function openTopic(id){
   current = 'topic';
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === 's-topic'));
   setTint(colorOf(id)); freeUrls();
-  $('#tp-area').textContent = areaOf(id).name; $('#tp-title').textContent = n.name;
+  $('#tp-area').textContent = areaName(id); $('#tp-ico').innerHTML = areaIcon(id); $('#tp-cap').textContent = n.name; $('#tp-title').textContent = n.name;
   $('#tp-date').textContent = 'Изучено ' + new Date(p.date + 'T12:00').toLocaleDateString('ru-RU', {day: 'numeric', month: 'long', year: 'numeric'});
   $('#tp-notes').value = p.notes || '';
   $('#tp-saved').classList.remove('on');
@@ -444,7 +475,7 @@ async function renderPhotos(){
     const d = document.createElement('div'); d.innerHTML = `<img src="${blobUrl(b)}" alt="">`;
     d.onclick = () => viewPhoto(k, d.firstChild.src); box.appendChild(d);
   }
-  const add = document.createElement('button'); add.className = 'add'; add.textContent = '＋';
+  const add = document.createElement('button'); add.className = 'add'; add.innerHTML = '＋<small>фото</small>';
   add.onclick = () => $('#tp-photo-in').click(); box.appendChild(add);
 }
 function shrink(file, max = 1600){
@@ -460,11 +491,22 @@ function shrink(file, max = 1600){
     img.src = u;
   });
 }
-$('#tp-photo-in').onchange = async e => {
-  const p = S.progress[topicId]; p.photos ??= [];
-  for (const f of e.target.files){ const k = mediaId(); try { await DB.put(k, await shrink(f)); p.photos.push(k); } catch(err){ toast('Не хватает места'); } }
-  e.target.value = ''; save(); renderPhotos();
-};
+async function addPhotos(files){
+  const p = S.progress[topicId]; if (!p) return; p.photos ??= [];
+  const imgs = [...files].filter(f => f.type.startsWith('image/') || /\.(jpe?g|png|gif|webp|heic|heif)$/i.test(f.name));
+  if (!imgs.length) return toast('Это не картинка');
+  for (const f of imgs){ const k = mediaId(); try { await DB.put(k, await shrink(f)); p.photos.push(k); } catch(err){ toast('Не хватает места'); } }
+  save(); renderPhotos();
+}
+$('#tp-photo-in').onchange = e => { addPhotos(e.target.files); e.target.value = ''; };
+{
+  const zone = $('#s-topic'), box = $('#tp-photos'); let depth = 0;
+  const hasFiles = e => [...(e.dataTransfer?.types || [])].includes('Files');
+  zone.addEventListener('dragenter', e => { if (!hasFiles(e)) return; e.preventDefault(); depth++; box.classList.add('drop'); box.scrollIntoView({block: 'nearest', behavior: 'smooth'}); });
+  zone.addEventListener('dragover', e => { if (hasFiles(e)) e.preventDefault(); });
+  zone.addEventListener('dragleave', () => { if (--depth <= 0) { depth = 0; box.classList.remove('drop'); } });
+  zone.addEventListener('drop', e => { if (!hasFiles(e)) return; e.preventDefault(); depth = 0; box.classList.remove('drop'); addPhotos(e.dataTransfer.files); });
+}
 function viewPhoto(k, src){
   $('#v-img').src = src; $('#viewer').hidden = false;
   $('#v-close').onclick = () => $('#viewer').hidden = true;
@@ -485,7 +527,7 @@ $('#tp-back').onclick = () => { freeUrls(); G.stack = pathOf(topicId).slice(0, -
 // ================= настройки =================
 let edStack = [];
 function renderSettings(){
-  setTint('#FFE14D');
+  setTint('#EEC55A');
   edStack = []; showSetMain(true);
   $('#set-topics-count').textContent = `${leaves.length}`;
   $('#set-sc').checked = S.settings.useShortcut;
@@ -504,7 +546,7 @@ $('#set-sc').onchange = e => { S.settings.useShortcut = e.target.checked; save()
 function renderEditor(){
   showSetMain(false);
   const pid = edStack[edStack.length - 1], list = pid ? byId[pid].children : S.tree;
-  setTint(pid ? colorOf(pid) : '#FFE14D');
+  setTint(pid ? colorOf(pid) : '#EEC55A');
   $('#ed-list').innerHTML = list.map(n => {
     const sub = isLeaf(n) ? (S.progress[n.id] ? 'пройдено ✓' : '') : `${leafCount(n)} тем · пройдено ${doneCount(n)}`;
     return `<div class="item" data-id="${n.id}"><span class="dot" style="background:${colorOf(n.id)}"></span>
