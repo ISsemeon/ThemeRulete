@@ -668,7 +668,17 @@ async function mergeText(text){
 // обновление встроенного списка у тех, кто уже пользуется: переименовать, затем дописать новое
 function migrateTopics(){
   if ((S.topicsVer || 1) >= TOPICS_VER) return;
-  (function walk(ns){ for (const n of ns) if (n.children) walk(n.children); else if (TOPIC_RENAMES[n.name]) n.name = TOPIC_RENAMES[n.name]; })(S.tree);
+  for (const st of TOPIC_STEPS.filter(x => x.v > (S.topicsVer || 1))){
+    const drop = new Set(st.drop || []);
+    S.tree = (function walk(ns){
+      return ns.filter(n => {
+        if (n.children) { n.children = walk(n.children); return n.children.length > 0; }
+        if (drop.has(n.name) && !S.progress[n.id]) return false;   // пройденные не трогаем
+        if (st.rename?.[n.name]) n.name = st.rename[n.name];
+        return true;
+      });
+    })(S.tree);
+  }
   S.tree = mergeTrees(S.tree, parseTopics(DEFAULT_TOPICS)).tree;
   S.topicsVer = TOPICS_VER; ensureIds(S.tree); reindex(); save();
 }
