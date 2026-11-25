@@ -34,7 +34,7 @@ function newToday(){ return {date: dayKey(), topicId: null, timerEnd: null, phas
 function loadState(){
   let s = null;
   try { s = JSON.parse(localStorage.getItem(KEY)); } catch(e){}
-  if (!s || !Array.isArray(s.tree)) s = {tree: parseTopics(DEFAULT_TOPICS), progress: {}};
+  if (!s || !Array.isArray(s.tree)) s = {tree: parseTopics(DEFAULT_TOPICS), progress: {}, topicsVer: TOPICS_VER};
   s.progress ??= {};
   s.settings = Object.assign({useShortcut: false, scName: 'Учёба 20'}, s.settings || {});
   if (!s.today || s.today.date !== dayKey()) s.today = newToday();
@@ -82,6 +82,25 @@ const ICONS = {
   'общество': `<g class="a-hop d2"><circle class="f" cx="14" cy="27" r="6"/><path class="f" d="M4 52a10 10 0 0 1 20 0z"/></g><g class="a-hop d1"><circle class="y" cx="32" cy="20" r="7"/><path class="y" d="M20 52a12 12 0 0 1 24 0z"/></g><g class="a-hop"><circle class="f" cx="50" cy="27" r="6"/><path class="f" d="M40 52a10 10 0 0 1 20 0z"/></g><path d="M2 56h60"/>`,
   'история идей': `<path class="f" d="M21 6c0 14 10 20 10 26S21 44 21 58h22c0-14-10-20-10-26s10-12 10-26z"/><path class="r o a-sand-top" stroke="none" d="M24 13h16c-1.5 6-5 9-8 12-3-3-6.5-6-8-12z"/><path class="a-fall" style="stroke:var(--red);stroke-width:2" d="M32 30v24"/><path class="r o a-sand-bot" stroke="none" d="M22 57c2-6 5-9 10-10 5 1 8 4 10 10z"/><path d="M16 6h32M16 58h32"/>`,
   'искусство и восприятие': `<defs><clipPath id="clip-eye"><path d="${EYE}"/></clipPath></defs><g class="vc a-lid"><path class="f" d="${EYE}"/><g clip-path="url(#clip-eye)"><g class="a-look"><circle class="r" cx="32" cy="32" r="10"/><circle class="d" cx="32" cy="32" r="4.5"/><circle cx="35" cy="29" r="1.5" style="fill:var(--card);stroke:none"/></g></g><path d="${EYE}"/></g>`,
+  'история': `<path class="f" d="M32 16c-8-4-16-5-24-4v36c8-1 16 0 24 4z"/><path class="f" d="M32 16c8-4 16-5 24-4v36c-8-1-16 0-24 4z"/><path class="vc a-twist" style="fill:var(--mustard);transform-origin:32px 32px;animation-duration:4s" d="M32 16c8-4 16-5 24-4v36c-8-1-16 0-24 4z"/><path class="thin" d="M14 22c5-1 10 0 13 1M14 30c5-1 10 0 13 1M14 38c5-1 10 0 13 1"/><path d="M32 16v36"/>`,
+  'война и стратегия': `<g class="vc a-rock" style="animation-duration:4s"><path d="M10 10l44 44M54 10 10 54"/><path d="M14 22l8-8M42 14l8 8"/></g><path class="r o a-beat" d="M32 14l14 5v10c0 10-6 16-14 20-8-4-14-10-14-20V19z"/><path style="stroke:var(--card)" d="M32 22v18M26 30h12"/>`,
+  'религии и мифы': `<path class="a-blink" d="M32 -2v4M14 6l3 3M50 6l-3 3"/><path class="y o a-flicker" d="M32 8c6 7 8 11 8 15a8 8 0 0 1-16 0c0-4 2-8 8-15z"/><path d="M32 22v8"/><path class="f" d="M23 30h18v26H23z"/><path class="thin" d="M27 36v14"/><path d="M14 58h36"/>`,
+  'животные': `<path class="y" d="M32 32c9 0 16 9 16 16 0 6-6 8-16 8s-16-2-16-8c0-7 7-16 16-16z"/><circle class="d a-hop" cx="13" cy="27" r="5"/><circle class="d a-hop d1" cx="24" cy="15" r="5.5"/><circle class="d a-hop d2" cx="40" cy="15" r="5.5"/><circle class="d a-hop d3" cx="51" cy="27" r="5"/>`,
+  'растения и грибы': `<g class="vc a-rock" style="transform-origin:32px 48px;animation-duration:3.5s"><path d="M32 48V22"/><path class="f" d="M32 36c-4-10-14-13-21-10 2 9 11 14 21 10z"/><path class="f" d="M32 28c3-10 13-14 21-11-1 9-11 15-21 11z"/><circle class="r" cx="32" cy="18" r="4"/></g><path class="r" d="M20 46h24l-3 12H23z"/>`,
+  'океан': `<defs><clipPath id="clip-sea"><circle cx="32" cy="32" r="24"/></clipPath></defs><circle class="f" cx="32" cy="32" r="24"/><g clip-path="url(#clip-sea)"><path class="y" stroke="none" d="M0 0h64v20H0z" style="opacity:.5"/><circle class="r" cx="44" cy="20" r="5" stroke="none"/><path class="a-wave" style="fill:var(--ink);opacity:.18" d="M-16 34q4-5 8 0t8 0 8 0 8 0 8 0 8 0 8 0 8 0 8 0 8 0V70H-16z"/><path class="a-wave" style="animation-duration:1.6s;animation-direction:reverse" d="M-16 42q4-5 8 0t8 0 8 0 8 0 8 0 8 0 8 0 8 0 8 0 8 0"/></g><circle cx="32" cy="32" r="24"/>`,
+  'еда и кухня': `<path class="a-rise" d="M24 22c-3-4 3-6 0-10"/><path class="a-rise d2" d="M32 22c-3-4 3-6 0-10"/><path class="a-rise d4" d="M40 22c-3-4 3-6 0-10"/><path class="r" d="M12 30h40v14a10 10 0 0 1-10 10H22a10 10 0 0 1-10-10z"/><path d="M8 30h48M12 36H5M52 36h7"/>`,
+  'выживание и безопасность': `<path class="r o a-flicker" d="M32 6c10 10 14 18 14 26a14 14 0 0 1-28 0c0-8 4-16 14-26z"/><path class="y o a-flicker d2" d="M32 22c5 5 7 9 7 13a7 7 0 0 1-14 0c0-4 2-8 7-13z"/><path style="stroke-width:5" d="M12 58l40-10M52 58 12 48"/>`,
+  'повседневная наука': `<path class="thin" d="M8 52h48"/><circle class="d a-blink" cx="16" cy="44" r="2"/><circle class="d a-blink d2" cx="30" cy="40" r="2"/><circle class="d a-blink d3" cx="46" cy="44" r="2"/><g class="a-look" style="animation-duration:5s"><circle class="f" cx="30" cy="26" r="13" style="fill-opacity:.85"/><path style="stroke-width:5" d="M40 36l10 10"/><path style="stroke:var(--red)" d="M24 22a7 7 0 0 1 6-4"/></g>`,
+  'бизнес и управление': `<path d="M8 56h48"/><path class="f o a-bar" d="M12 40h9v16h-9z"/><path class="y o a-bar d1" d="M26 30h9v26h-9z"/><path class="r o a-bar d2" d="M40 18h9v38h-9z"/><path class="a-blink" d="M10 30 24 18l8 6 18-16M44 8h6v6"/>`,
+  'личные финансы': `<path class="f" d="M14 50h24v6H14zM16 44h24v6H16z"/><g class="vc a-twist" style="transform-origin:40px 24px;animation-duration:2.4s"><circle class="y" cx="40" cy="24" r="15"/><circle class="thin" cx="40" cy="24" r="11"/><path d="M37 17h5a4 4 0 0 1 0 8h-5zM37 17v15M34 29h8"/></g>`,
+  'право и государство': `<path class="f" d="M28 50h28v6H28z"/><g class="vc a-hammer" style="transform-origin:12px 46px"><path d="M37 21 12 46"/><path class="r" d="M30 8l16 16-7 7-16-16z"/></g>`,
+  'города и архитектура': `<path class="f" d="M6 58V30h14v28M20 58V12h16v46M36 58V24h12v34M48 58V38h10v20"/><path d="M2 58h60"/><g class="d"><rect class="a-blink" x="10" y="36" width="4" height="4"/><rect class="a-blink d2" x="24" y="18" width="4" height="4"/><rect class="a-blink d4" x="28" y="30" width="4" height="4"/><rect class="a-blink d1" x="24" y="42" width="4" height="4"/><rect class="a-blink d3" x="40" y="30" width="4" height="4"/><rect class="a-blink d2" x="51" y="44" width="4" height="4"/></g>`,
+  'кино и литература': `<path d="M32 50h26"/><g class="o a-rot"><circle class="f" cx="28" cy="30" r="22"/><circle class="r" cx="28" cy="17" r="5"/><circle class="d" cx="40" cy="26" r="5"/><circle class="y" cx="36" cy="41" r="5"/><circle class="d" cx="20" cy="41" r="5"/><circle class="y" cx="16" cy="26" r="5"/><circle class="d" cx="28" cy="30" r="2.5"/></g>`,
+  'игры и спорт': `<ellipse class="o a-shadow" cx="32" cy="58" rx="14" ry="3" style="fill:var(--ink);opacity:.25;stroke:none"/><g class="a-bounce"><circle class="r" cx="32" cy="22" r="16"/><path style="stroke:var(--card)" d="M16 22h32M32 6v32M21 10c5 8 5 16 0 24M43 10c-5 8-5 16 0 24"/></g>`,
+  'страны и культуры': `<circle class="f" cx="32" cy="32" r="24"/><circle class="thin" cx="32" cy="32" r="19"/><path class="thin" d="M32 4v6M32 54v6M4 32h6M54 32h6"/><g class="vc a-rock" style="animation-duration:2.6s"><path class="r" d="M32 12l5 20h-10z"/><path class="f" d="M32 52l5-20h-10z"/></g><circle class="d" cx="32" cy="32" r="2.5"/>`,
+  'интернет и медиа': `<circle class="r" cx="32" cy="50" r="4"/><path class="a-blink d4" d="M24 42a11 11 0 0 1 16 0"/><path class="a-blink d2" d="M16 34a22 22 0 0 1 32 0"/><path class="a-blink" d="M8 26a33 33 0 0 1 48 0"/>`,
+  'транспорт и инженерия': `<g class="a-hop" style="animation-duration:1.6s"><path class="r o a-flicker" d="M27 42h10l-5 14z"/><path class="f" d="M32 4c9 8 11 22 8 38H24C21 26 23 12 32 4z"/><circle class="y" cx="32" cy="22" r="4.5"/><path class="f" d="M24 32l-8 10h9M40 32l8 10h-9"/></g>`,
+  'криминалистика и тайны': `<g class="thin" style="opacity:.9;stroke-width:2"><path d="M20 46c-4-6-5-14-2-21M26 52c-6-8-8-20-3-29 4-6 14-7 18-1M32 54c-3-6-5-14-3-21 1-4 6-4 7 0 2 6 1 13 4 19M38 54c-2-8-1-16-3-22M44 46c2-6 2-14-1-19"/></g><path class="a-scan" style="stroke:var(--red);stroke-width:3" d="M10 12h44"/>`,
   _: `<path class="y o a-rot" style="animation-duration:14s" d="M32 6l7 17 18 2-14 12 4 18-15-9-15 9 4-18L7 25l18-2z"/>`,
 };
 const areaIcon = id => `<svg class="aico" viewBox="0 0 64 64" aria-hidden="true">${ICONS[areaName(id).toLowerCase().trim()] || ICONS._}</svg>`;
@@ -152,7 +171,7 @@ function go(name){
   if (current === 'gallery' && name !== 'gallery') cancelAnimationFrame(G.raf);
   current = name;
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === 's-' + name));
-  ({home: renderHome, spin: renderSpin, study: renderStudy, record: renderRecord, gallery: () => gBuild(), settings: renderSettings}[name] || (() => {}))();
+  ({home: renderHome, spin: renderSpin, study: renderStudy, record: renderRecord, gallery: () => document.fonts.ready.then(() => current === 'gallery' && gBuild()), settings: renderSettings}[name] || (() => {}))();
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) go(b.dataset.go); });
 
@@ -365,23 +384,40 @@ function gBuild(spawn){
   const max = Math.max(1, ...kids.map(doneCount));
   const w = kids.map(k => isLeaf(k) ? 1 : .55 + .45 * Math.sqrt(doneCount(k) / max));
   const sum = w.reduce((s, x) => s + x * x, 0) || 1;
-  const base = Math.min(m * .19, Math.max(28, Math.sqrt(G.W * G.H * .33 / (Math.PI * sum))));
+  const base = Math.min(m * .19, Math.max(28, Math.sqrt(G.W * G.H * .26 / (Math.PI * sum))));
   const sx = spawn ? spawn.x : G.W / 2, sy = spawn ? spawn.y : G.H / 2;
   G.nodes = kids.map((k, i) => {
     const [e, n] = splitEmoji(k.name), ang = i / kids.length * Math.PI * 2 + Math.random() * .3;
-    return mkBubble({id: k.id, leaf: isLeaf(k), color: colorOf(k.id), r: base * w[i], icon: areaIcon(k.id), name: n,
+    return mkBubble({id: k.id, leaf: isLeaf(k), color: colorOf(k.id), r: Math.min(m * .26, Math.max(base * w[i], minR(n))), icon: areaIcon(k.id), name: n,
       count: isLeaf(k) ? 0 : doneCount(k), x: sx + Math.cos(ang) * 20, y: sy + Math.sin(ang) * 20, delay: i * 40});
   });
   cancelAnimationFrame(G.raf); G.raf = requestAnimationFrame(gStep);
 }
+// подбор шрифта: самое длинное слово влезает в строку, всего не больше 3 строк
+const mctx = document.createElement('canvas').getContext('2d');
+function fitText(t, w, max, min, script){
+  let fs = max, words = t.split(/\s+/), lines = 1;
+  for (; fs > min; fs -= .5){
+    mctx.font = script ? `${fs}px Lobster` : `700 ${fs}px "PT Serif"`;
+    const sp = mctx.measureText(' ').width; let line = 0; lines = 1; let ok = true;
+    for (const wd of words){ const ww = mctx.measureText(wd).width; if (ww > w) { ok = false; break; } if (line && line + sp + ww > w) { lines++; line = ww; } else line += (line ? sp : 0) + ww; }
+    if (ok && lines <= 3) break;
+  }
+  return {fs, lines};
+}
+const longestWord = t => Math.max(...t.split(/\s+/).map(w => w.length));
+// минимальный радиус, при котором название влезает в 3 строки шрифтом 12px
+const minR = t => Math.max(40, 1.8 * Math.min(t.length, 52), 4.8 * longestWord(t) + 14);
 function mkBubble(o){
   const el = document.createElement('div');
   el.className = 'bubble pop' + (o.center ? ' center' : '');
   el.style.cssText = `--bc:${o.color};width:${2 * o.r}px;height:${2 * o.r}px;animation-delay:${o.delay || 0}ms`;
-  // подпись — бумажная плашка поверх пузыря, может быть шире него
-  const fs = o.center ? Math.max(o.icon ? 14 : 17, Math.min(26, o.r * (o.icon ? .2 : .3))) : Math.max(13, Math.min(17, o.r * .3));
+  // подпись целиком внутри круга: шрифт под длину, иконка — на оставшееся место
   const name = o.name.length > 52 ? o.name.slice(0, 50) + '…' : o.name;
-  el.innerHTML = `${o.icon || ''}<div class="n" style="--fs:${fs}px;--mw:${Math.max(2 * o.r * 1.25, 120)}px">${esc(name)}</div>${o.count && !o.center ? `<div class="k">${o.count}</div>` : ''}`;
+  const W = 1.5 * o.r, Wt = W - (o.center ? 6 : 24), fit = fitText(name, Wt, o.center ? 24 : 17, o.center ? 14 : 11, o.center);
+  const fs = fit.fs, lines = fit.lines, ih = Math.min(o.r * (o.center ? .8 : .9), 1.6 * o.r - lines * fs * 1.15 - 16);
+  const icon = o.icon && ih >= 20 ? o.icon.replace('class="aico"', `class="aico" style="width:${ih}px;height:${ih}px"`) : '';
+  el.innerHTML = `${icon}<div class="n" style="--fs:${fs}px;--mw:${W}px">${esc(name)}</div>${o.count && !o.center ? `<div class="k">${o.count}</div>` : ''}`;
   $('#g-field').appendChild(el);
   const node = Object.assign(o, {el, vx: 0, vy: 0, ph: Math.random() * 6.28});
   el.addEventListener('pointerdown', e => gDown(e, node));
@@ -604,10 +640,10 @@ $('#set-import-in').onchange = async e => {
 };
 
 // импорт текста "# Область / ## Раздел / тема": добавляет к текущим, дубли пропускает
-async function mergeText(text){
-  const add = parseTopics(text);
-  const seen = new Set(leaves.map(l => norm(l.name)));
-  const tree = JSON.parse(JSON.stringify(S.tree));
+// слить темы add в копию tree; дубли по нормализованному имени пропускаются
+function mergeTrees(base, add){
+  const tree = JSON.parse(JSON.stringify(base)), seen = new Set();
+  (function walk(ns){ for (const n of ns) n.children ? walk(n.children) : seen.add(norm(n.name)); })(tree);
   let added = 0, dup = 0;
   const merge = (src, dst, depth) => {
     for (const n of src){
@@ -618,14 +654,26 @@ async function mergeText(text){
     }
   };
   merge(add, tree, 0);
-  if (!added) { toast(dup ? `Новых тем нет, дублей: ${dup}` : 'В файле не найдено тем'); return; }
-  if (!await ask(`Добавить ${added} новых тем? Дублей пропущено: ${dup}.`, {input: false, ok: 'Добавить'})) return;
   // новые разделы, где всё оказалось дублями, не оставляем
   const prune = ns => ns.filter(n => { if (!n.children) return true; n.children = prune(n.children); const keep = !n._new || n.children.length; delete n._new; return keep; });
-  S.tree = prune(tree);
+  return {tree: prune(tree), added, dup};
+}
+async function mergeText(text){
+  const {tree, added, dup} = mergeTrees(S.tree, parseTopics(text));
+  if (!added) { toast(dup ? `Новых тем нет, дублей: ${dup}` : 'В файле не найдено тем'); return; }
+  if (!await ask(`Добавить ${added} новых тем? Дублей пропущено: ${dup}.`, {input: false, ok: 'Добавить'})) return;
+  S.tree = tree;
   ensureIds(S.tree); reindex(); save(); renderSettings(); toast(`Добавлено ${added} тем`);
+}
+// обновление встроенного списка у тех, кто уже пользуется: переименовать, затем дописать новое
+function migrateTopics(){
+  if ((S.topicsVer || 1) >= TOPICS_VER) return;
+  (function walk(ns){ for (const n of ns) if (n.children) walk(n.children); else if (TOPIC_RENAMES[n.name]) n.name = TOPIC_RENAMES[n.name]; })(S.tree);
+  S.tree = mergeTrees(S.tree, parseTopics(DEFAULT_TOPICS)).tree;
+  S.topicsVer = TOPICS_VER; ensureIds(S.tree); reindex(); save();
 }
 
 // ================= старт =================
+migrateTopics();
 go('home');
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
