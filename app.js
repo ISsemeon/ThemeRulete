@@ -636,8 +636,10 @@ $('#set-timer').onclick = async () => {
   S.settings.timerMin = n; save(); applyTimerLabels(); toast(`Таймер: ${minLabel(n)}`);
 };
 $('#set-dev').onchange = e => { try { localStorage.setItem('tema-dnya.dev', e.target.checked ? '1' : '0'); } catch(err){} location.reload(); };
-$('#dev-fill').onclick = () => {
-  const p = pool().sort(() => Math.random() - .5).slice(0, 20);
+$('#dev-fill').onclick = async () => {
+  const v = await ask('Сколько случайных тем отметить пройденными?', {value: '20', ok: 'Заполнить', numeric: true}); if (!v) return;
+  const n = Math.max(1, Math.min(5000, parseInt(v) || 0));
+  const p = pool().sort(() => Math.random() - .5).slice(0, n);
   p.forEach(l => S.progress[l.id] = {date: dayKey(new Date(Date.now() - Math.random() * 60 * 864e5)), notes: 'Тестовая заметка про «' + l.name + '»', photos: [], video: null});
   save(); toast(`Добавлено ${p.length}`);
 };
