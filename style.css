@@ -259,7 +259,7 @@ textarea::placeholder{color:rgba(58,44,36,.4);font-style:italic}
 .toast.on{opacity:1;transform:translate(-50%,0)}
 
 /* ---------- анимированные иконки областей ---------- */
-.aico{display:block;overflow:visible;fill:none;stroke:var(--ink);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.aico{display:block;overflow:visible;fill:none;stroke:var(--ink);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(2px 2.5px 0 rgba(58,44,36,.3))}
 .aico .f{fill:var(--card)}
 .aico .d{fill:var(--ink);stroke:none}
 .aico .r{fill:var(--red)}
