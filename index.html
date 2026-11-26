@@ -22,7 +22,7 @@
 <!-- ГЛАВНАЯ -->
 <section class="screen" id="s-home">
   <div class="home-top"><span class="rule"></span><span class="h-date" id="h-date"></span><span class="rule"></span></div>
-  <h1 class="home-title"><span class="script">Тема</span><span class="big">ДНЯ</span><span class="spaced">20 минут · 1 видео</span></h1>
+  <h1 class="home-title"><span class="script">Тема</span><span class="big">ДНЯ</span><span class="spaced" id="home-spaced">20 минут · 1 видео</span></h1>
   <div class="ticker" aria-hidden="true"><div class="ticker-track" id="ticker"></div></div>
   <div class="start-wrap">
     <div class="burst" aria-hidden="true"></div>
@@ -30,7 +30,7 @@
       <svg class="ring" viewBox="0 0 200 200" aria-hidden="true">
         <defs><path id="ring-path" d="M100 100m-82 0a82 82 0 1 1 164 0a82 82 0 1 1-164 0"/></defs>
         <circle cx="100" cy="100" r="70"/>
-        <text><textPath href="#ring-path" textLength="510" lengthAdjust="spacing">КРУТИ ✦ ИЗУЧАЙ 20 МИНУТ ✦ ОБЪЯСНИ ЗА МИНУТУ ✦</textPath></text>
+        <text><textPath href="#ring-path" textLength="510" lengthAdjust="spacing" id="ring-text">КРУТИ ✦ ИЗУЧАЙ 20 МИНУТ ✦ ОБЪЯСНИ ЗА МИНУТУ ✦</textPath></text>
       </svg>
       <span class="start-label" id="start-label">Крутить</span>
       <span class="start-sub" id="start-sub"></span>
@@ -141,8 +141,9 @@
     <button class="rowbtn" id="set-export"><span>Экспорт в файл</span><b>→</b></button>
     <button class="rowbtn" id="set-import"><span>Импорт из файла</span><b>→</b></button>
     <input type="file" id="set-import-in" accept=".json,.txt,application/json,text/plain" hidden>
+    <button class="rowbtn" id="set-timer"><span>Время на тему</span><small id="set-timer-val"></small><b>→</b></button>
     <label class="rowbtn"><span>Таймер сверху экрана</span><input type="checkbox" class="switch" id="set-sc"></label>
-    <p class="hint">Запускает системный таймер iPhone — он виден в Dynamic Island, пока ты пользуешься телефоном. Один раз создай в «Командах» команду <b>«Учёба 20»</b> с действием «Запустить таймер» на 20 минут.</p>
+    <p class="hint">Запускает системный таймер iPhone — он виден в Dynamic Island, пока ты пользуешься телефоном. Один раз создай в «Командах» команду <b>«Учёба 20»</b> с действием «Запустить таймер»: в длительность поставь «Ввод команды» в минутах — приложение передаёт туда своё время.</p>
     <button class="rowbtn" id="set-trash"><span>Корзина</span><small id="set-trash-count"></small><b>→</b></button>
     <label class="label">Для разработчика</label>
     <label class="rowbtn"><span>Тестовый режим</span><input type="checkbox" class="switch" id="set-dev"></label>

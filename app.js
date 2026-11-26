@@ -3,7 +3,7 @@ const $ = s => document.querySelector(s);
 // тестовый режим: отдельное хранилище и короткий таймер
 const DEV = (() => { try { return localStorage.getItem('tema-dnya.dev') === '1'; } catch(e){ return false; } })();
 const KEY = DEV ? 'tema-dnya.dev-state' : 'tema-dnya.v2';
-const TIMER_MIN = DEV ? 1 / 3 : 20, REC_SEC = 60;
+const REC_SEC = 60;
 if (DEV) document.documentElement.classList.add('dev');
 const PALETTE = ['#8FB3C9','#7FB7B0','#A99AC4','#9CC5A1','#B5C46B','#E8907F','#E7A6B8','#EBA061','#EEC55A','#C9C77A','#A9C0D4','#86C3C7','#D2AE7E','#E59A79','#C3A5C6','#E88FA0'];
 // старые яркие цвета областей -> ретро
@@ -39,7 +39,7 @@ function loadState(){
   try { s = JSON.parse(localStorage.getItem(KEY)); } catch(e){}
   if (!s || !Array.isArray(s.tree)) s = {tree: parseTopics(DEFAULT_TOPICS), progress: {}, topicsVer: TOPICS_VER};
   s.progress ??= {}; s.trash ??= [];
-  s.settings = Object.assign({useShortcut: false, scName: 'Учёба 20'}, s.settings || {});
+  s.settings = Object.assign({useShortcut: false, scName: 'Учёба 20', timerMin: 20}, s.settings || {});
   if (!s.today || s.today.date !== dayKey()) s.today = newToday();
   ensureIds(s.tree);
   return s;
@@ -150,12 +150,12 @@ function searchSimilar(q){
   box.innerHTML = (same ? '<div class="note">Такая уже есть</div>' : hits.length ? '<div class="note">Похожие:</div>' : '<div class="note">Похожих нет — можно добавлять</div>') +
     hits.map(h => `<div class="${h.score === 100 ? 'same' : ''}">${esc(h.n.name)}<small>${esc(pathOf(h.n.id).slice(0, -1).map(id => byId[id].name).join(' › ') || 'область')}</small></div>`).join('');
 }
-function ask(title, {value = '', input = true, ok = 'OK', search = false} = {}){
+function ask(title, {value = '', input = true, ok = 'OK', search = false, numeric = false} = {}){
   return new Promise(res => {
     $('#m-title').textContent = title; $('#m-ok').textContent = ok; $('#m-ok').disabled = false;
     const inp = $('#m-input'); inp.hidden = !input; inp.value = value; $('#m-list').innerHTML = '';
     inp.oninput = search ? () => searchSimilar(inp.value) : null;
-    inp.placeholder = search ? 'Начни вводить — поищу похожие' : '';
+    inp.placeholder = search ? 'Начни вводить — поищу похожие' : ''; inp.inputMode = numeric ? 'numeric' : 'text';
     $('#modal').hidden = false; if (input) setTimeout(() => inp.focus(), 50);
     const done = v => { $('#modal').hidden = true; $('#m-ok').onclick = $('#m-cancel').onclick = inp.oninput = null; $('#m-list').innerHTML = ''; res(v); };
     $('#m-ok').onclick = () => done(input ? inp.value.trim() || null : true);
@@ -267,15 +267,25 @@ $('#r-trash').onclick = () => { audio(); trashToday(); };
 $('#st-swap').onclick = async () => { if (await ask(`Убрать «${byId[S.today.topicId].name}» в корзину и выбрать другую?`, {input: false, ok: 'Другая тема'})) trashToday(); };
 
 // ================= таймер =================
-const totalMs = TIMER_MIN * 60000;
-const leftMs = () => S.today.timerEnd == null ? totalMs : Math.max(0, S.today.timerEnd - Date.now());
+// длительность из настроек; у запущенного таймера — та, с которой он стартовал
+const timerMin = () => DEV ? 1 / 3 : S.settings.timerMin;
+const totalMs = () => S.today.timerEnd != null && S.today.timerTotal || timerMin() * 60000;
+const leftMs = () => S.today.timerEnd == null ? totalMs() : Math.max(0, S.today.timerEnd - Date.now());
+const minLabel = n => `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'минута' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'минуты' : 'минут'}`;
+function applyTimerLabels(){
+  const n = S.settings.timerMin, l = minLabel(n);
+  $('#r-start').textContent = `Начать · ${l}`;
+  $('#home-spaced').textContent = `${l} · 1 видео`;
+  $('#ring-text').textContent = `КРУТИ ✦ ИЗУЧАЙ ${l.toUpperCase()} ✦ ОБЪЯСНИ ЗА МИНУТУ ✦`;
+  $('#set-timer-val').textContent = l;
+}
 const fmt = ms => { const s = Math.ceil(ms / 1000); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
 let wake = null;
 async function keepAwake(on){ try { if (on && !wake && 'wakeLock' in navigator) { wake = await navigator.wakeLock.request('screen'); wake.onrelease = () => wake = null; } if (!on && wake) { await wake.release(); wake = null; } } catch(e){} }
 function startTimer(){
-  S.today.timerEnd = Date.now() + totalMs; S.today.phase = 'study'; save(); rang = false;
+  S.today.timerTotal = timerMin() * 60000; S.today.timerEnd = Date.now() + S.today.timerTotal; S.today.phase = 'study'; save(); rang = false;
   keepAwake(true);
-  if (S.settings.useShortcut) location.href = 'shortcuts://run-shortcut?name=' + encodeURIComponent(S.settings.scName);
+  if (S.settings.useShortcut) location.href = 'shortcuts://run-shortcut?name=' + encodeURIComponent(S.settings.scName) + '&input=text&text=' + Math.round(timerMin());
 }
 function renderStudy(){
   const n = byId[S.today.topicId]; if (!n) return go('home');
@@ -287,8 +297,8 @@ let rang = false;
 function tickStudy(){
   const running = S.today.phase === 'study', ms = leftMs(), over = running && ms <= 0;
   $('#st-time').textContent = fmt(ms);
-  $('#st-dial').style.setProperty('--deg', (360 * ms / totalMs).toFixed(2) + 'deg');
-  $('#st-state').textContent = over ? 'время вышло!' : running ? 'изучаем — можно гуглить' : '20 минут на тему';
+  $('#st-dial').style.setProperty('--deg', (360 * ms / totalMs()).toFixed(2) + 'deg');
+  $('#st-state').textContent = over ? 'время вышло!' : running ? 'изучаем — можно гуглить' : minLabel(S.settings.timerMin) + ' на тему';
   $('#st-go').hidden = running;
   $('#st-record').hidden = !over;
   $('#st-early').hidden = !running || over;
@@ -595,6 +605,7 @@ function renderSettings(){
   edStack = []; showSetMain(true);
   $('#set-topics-count').textContent = `${leaves.length}`;
   $('#set-sc').checked = S.settings.useShortcut;
+  applyTimerLabels();
   $('#set-trash-count').textContent = S.trash.length ? `${S.trash.length}` : '';
   $('#set-dev').checked = DEV; $('#dev-tools').hidden = !DEV;
 }
@@ -608,6 +619,12 @@ function renderTrash(){
     || '<p class="hint">Пусто. Сюда попадают темы, которые ты убрал из розыгрыша.</p>';
 }
 $('#set-trash').onclick = renderTrash;
+$('#set-timer').onclick = async () => {
+  const v = await ask('Сколько минут на тему?', {value: String(S.settings.timerMin), ok: 'Сохранить', numeric: true}); if (v == null || v === false) return;
+  const n = Math.round(parseFloat(String(v).replace(',', '.')));
+  if (!(n >= 1 && n <= 180)) return toast('От 1 до 180 минут');
+  S.settings.timerMin = n; save(); applyTimerLabels(); toast(`Таймер: ${minLabel(n)}`);
+};
 $('#set-dev').onchange = e => { try { localStorage.setItem('tema-dnya.dev', e.target.checked ? '1' : '0'); } catch(err){} location.reload(); };
 $('#dev-fill').onclick = () => {
   const p = pool().sort(() => Math.random() - .5).slice(0, 20);
@@ -735,5 +752,6 @@ function migrateTopics(){
 
 // ================= старт =================
 migrateTopics();
+applyTimerLabels();
 go('home');
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
