@@ -1,7 +1,10 @@
 'use strict';
 const $ = s => document.querySelector(s);
-const KEY = 'tema-dnya.v2';
-const TIMER_MIN = 20, REC_SEC = 60;
+// тестовый режим: отдельное хранилище и короткий таймер
+const DEV = (() => { try { return localStorage.getItem('tema-dnya.dev') === '1'; } catch(e){ return false; } })();
+const KEY = DEV ? 'tema-dnya.dev-state' : 'tema-dnya.v2';
+const TIMER_MIN = DEV ? 1 / 3 : 20, REC_SEC = 60;
+if (DEV) document.documentElement.classList.add('dev');
 const PALETTE = ['#8FB3C9','#7FB7B0','#A99AC4','#9CC5A1','#B5C46B','#E8907F','#E7A6B8','#EBA061','#EEC55A','#C9C77A','#A9C0D4','#86C3C7','#D2AE7E','#E59A79','#C3A5C6','#E88FA0'];
 // старые яркие цвета областей -> ретро
 const RETRO = {'#7DA2FF':'#8FB3C9','#4FD1FF':'#7FB7B0','#B69CFF':'#A99AC4','#3EE0C5':'#9CC5A1','#7BE37B':'#B5C46B','#FF7A8A':'#E8907F','#FF8FD8':'#E7A6B8','#FFA24C':'#EBA061','#EEC55A':'#EEC55A','#C8F05A':'#C9C77A','#9CC2FF':'#A9C0D4','#5CE1E6':'#86C3C7','#E6B26A':'#D2AE7E','#FF9C73':'#E59A79','#D7A6FF':'#C3A5C6','#F2C879':'#E3C48E','#FF6FB0':'#E88FA0'};
@@ -35,7 +38,7 @@ function loadState(){
   let s = null;
   try { s = JSON.parse(localStorage.getItem(KEY)); } catch(e){}
   if (!s || !Array.isArray(s.tree)) s = {tree: parseTopics(DEFAULT_TOPICS), progress: {}, topicsVer: TOPICS_VER};
-  s.progress ??= {};
+  s.progress ??= {}; s.trash ??= [];
   s.settings = Object.assign({useShortcut: false, scName: 'Учёба 20'}, s.settings || {});
   if (!s.today || s.today.date !== dayKey()) s.today = newToday();
   ensureIds(s.tree);
@@ -215,7 +218,7 @@ function fillTicker(){
 const N_ITEMS = 24, STEP = 360 / N_ITEMS, ITEM_H = 84;
 const RADIUS = Math.round(ITEM_H / 2 / Math.tan(Math.PI / N_ITEMS));
 let spinning = false;
-function pool(){ return leaves.filter(l => !S.progress[l.id]); }
+function pool(){ const t = new Set(S.trash); return leaves.filter(l => !S.progress[l.id] && !t.has(l.id)); }
 function setDrum(items, angle){
   const d = $('#drum');
   d.innerHTML = items.map((n, i) => `<div class="drum-item" style="--ic:${colorOf(n.id)};transform:rotateX(${i * STEP}deg) translateZ(${RADIUS}px)"><span>${esc(n.name)}</span></div>`).join('');
@@ -244,7 +247,7 @@ function spin(){
     const t = Math.min(1, (now - t0) / dur), a = target * ease(t);
     $('#drum').style.transform = `translateZ(${-RADIUS}px) rotateX(${-a}deg)`;
     const idx = Math.floor((a + STEP / 2) / STEP);
-    if (idx !== last) { tone(1100, .025, .07, 'square'); last = idx; setTint(colorOf(items[idx % N_ITEMS].id)); }
+    if (idx !== last) { tone(1100, .025, .07, 'square'); last = idx; }
     if (t < 1) return requestAnimationFrame(frame);
     spinning = false;
     const n = items[win];
@@ -254,6 +257,14 @@ function spin(){
   })(t0);
 }
 $('#r-start').onclick = () => { audio(); startTimer(); go('study'); };
+// выпавшую тему — в корзину, крутим заново
+function trashToday(){
+  const id = S.today.topicId; if (id && !S.trash.includes(id)) S.trash.push(id);
+  S.today = newToday(); save(); keepAwake(false);
+  toast('Убрано в корзину'); go('spin'); spin();
+}
+$('#r-trash').onclick = () => { audio(); trashToday(); };
+$('#st-swap').onclick = async () => { if (await ask(`Убрать «${byId[S.today.topicId].name}» в корзину и выбрать другую?`, {input: false, ok: 'Другая тема'})) trashToday(); };
 
 // ================= таймер =================
 const totalMs = TIMER_MIN * 60000;
@@ -281,6 +292,7 @@ function tickStudy(){
   $('#st-go').hidden = running;
   $('#st-record').hidden = !over;
   $('#st-early').hidden = !running || over;
+  $('#st-swap').hidden = over;
   if (over && !rang) { rang = true; chime(); keepAwake(false); }
 }
 setInterval(() => { if (current === 'study') tickStudy(); }, 250);
@@ -308,6 +320,7 @@ function resetCam(){
   const v = $('#rc-video'); v.removeAttribute('src'); v.srcObject = null; v.controls = false; v.classList.remove('play');
   $('#rc-idle').hidden = false; $('#rc-rec').hidden = true; $('#rc-count').hidden = true; $('#rc-after').hidden = true;
   $('#rc-rec').classList.remove('on');
+  $('#rc-novideo').hidden = !!S.progress[recFor];
 }
 async function camOn(){
   try {
@@ -329,7 +342,7 @@ function recToggle(){
     videoBlob = new Blob(chunks, {type: recorder.mimeType || 'video/mp4'});
     if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
     const v = $('#rc-video'); v.srcObject = null; v.src = URL.createObjectURL(videoBlob); v.muted = false; v.controls = true; v.classList.add('play');
-    $('#rc-rec').hidden = true; $('#rc-count').hidden = true; $('#rc-after').hidden = false;
+    $('#rc-rec').hidden = true; $('#rc-count').hidden = true; $('#rc-after').hidden = false; $('#rc-novideo').hidden = true;
   };
   recorder.start(1000);
   $('#rc-rec').classList.add('on');
@@ -357,6 +370,14 @@ $('#rc-on').onclick = camOn;
 $('#rc-rec').onclick = recToggle;
 $('#rc-retake').onclick = () => { resetCam(); camOn(); };
 $('#rc-save').onclick = saveVideo;
+// пройти тему только с заметками
+$('#rc-novideo').onclick = async () => {
+  if (!await ask('Сохранить тему без видео? Видео можно будет записать потом на странице темы.', {input: false, ok: 'Сохранить'})) return;
+  camOff(); const id = recFor;
+  S.progress[id] = {date: dayKey(), notes: S.today.notes || '', photos: [], video: null};
+  if (id === S.today.topicId) S.today.phase = 'done';
+  save(); chime(); toast('Сохранено в галерею'); openTopic(id);
+};
 $('#rc-back').onclick = () => S.progress[recFor] ? openTopic(recFor) : go('home');
 
 // ================= галерея-пузыри =================
@@ -368,27 +389,33 @@ function gLevelKids(){
 function gBuild(spawn){
   const field = $('#g-field'); field.classList.remove('leaving');
   field.querySelectorAll('.bubble').forEach(b => b.remove());
-  const rect = field.getBoundingClientRect(); G.W = rect.width; G.H = rect.height;
+  const rect = field.getBoundingClientRect(), Hv = rect.height; G.W = rect.width;
   const pid = G.stack[G.stack.length - 1], parent = pid && byId[pid];
   const tint = parent ? colorOf(pid) : '#EEC55A'; setTint(tint);
   // хлебные крошки
   $('#g-crumbs').innerHTML = ['Моё поле', ...G.stack.map(id => splitEmoji(byId[id].name)[1])].map(s => `<span>${esc(s)}</span>`).join('');
   requestAnimationFrame(() => { const c = $('#g-crumbs'); c.scrollLeft = c.scrollWidth; });
-  const kids = gLevelKids(), m = Math.min(G.W, G.H);
+  const kids = gLevelKids(), m = Math.min(G.W, Hv);
   const total = parent ? doneCount(parent) : leaves.filter(l => S.progress[l.id]).length;
   $('#g-empty').hidden = total > 0;
-  // центр
-  const [ce, cn] = parent ? splitEmoji(parent.name) : ['', 'Моё поле'];
-  G.center = mkBubble({id: pid || null, center: true, color: tint, r: m * .17, icon: pid ? areaIcon(pid) : '', name: cn, count: total, x: G.W / 2, y: G.H / 2});
-  // дети: размер по числу пройденных, суммарная площадь ~ 35% поля
+  // дети: размер по числу пройденных, но не меньше, чем нужно для подписи
   const max = Math.max(1, ...kids.map(doneCount));
   const w = kids.map(k => isLeaf(k) ? 1 : .55 + .45 * Math.sqrt(doneCount(k) / max));
   const sum = w.reduce((s, x) => s + x * x, 0) || 1;
-  const base = Math.min(m * .19, Math.max(28, Math.sqrt(G.W * G.H * .26 / (Math.PI * sum))));
-  const sx = spawn ? spawn.x : G.W / 2, sy = spawn ? spawn.y : G.H / 2;
+  const base = Math.min(m * .19, Math.max(28, Math.sqrt(G.W * Hv * .26 / (Math.PI * sum))));
+  const cr = m * .17, rs = kids.map((k, i) => Math.min(m * .26, Math.max(base * w[i], minR(splitEmoji(k.name)[1]))));
+  // не влезает на экран — поле становится выше и прокручивается
+  const need = rs.reduce((s, r) => s + Math.PI * (r + 8) ** 2, Math.PI * (cr + 8) ** 2);
+  G.H = Math.max(Hv, need / (G.W * .42));
+  $('#g-space').style.height = G.H + 'px'; $('#g-lines').style.height = G.H + 'px';
+  field.scrollTop = (G.H - Hv) / 2;
+  // центр
+  const [ce, cn] = parent ? splitEmoji(parent.name) : ['', 'Моё поле'];
+  G.center = mkBubble({id: pid || null, center: true, color: tint, r: cr, icon: pid ? areaIcon(pid) : '', name: cn, count: total, x: G.W / 2, y: G.H / 2});
+  const sx = G.W / 2, sy = G.H / 2;
   G.nodes = kids.map((k, i) => {
     const [e, n] = splitEmoji(k.name), ang = i / kids.length * Math.PI * 2 + Math.random() * .3;
-    return mkBubble({id: k.id, leaf: isLeaf(k), color: colorOf(k.id), r: Math.min(m * .26, Math.max(base * w[i], minR(n))), icon: areaIcon(k.id), name: n,
+    return mkBubble({id: k.id, leaf: isLeaf(k), color: colorOf(k.id), r: rs[i], icon: areaIcon(k.id), name: n,
       count: isLeaf(k) ? 0 : doneCount(k), x: sx + Math.cos(ang) * 20, y: sy + Math.sin(ang) * 20, delay: i * 40});
   });
   cancelAnimationFrame(G.raf); G.raf = requestAnimationFrame(gStep);
@@ -473,7 +500,8 @@ function gTap(node){
   G.busy = true; cancelAnimationFrame(G.raf);
   const s = (G.center.r / node.r);
   node.el.classList.add('chosen'); $('#g-field').classList.add('leaving');
-  node.el.style.transform = `translate(${G.W / 2 - node.r}px,${G.H / 2 - node.r}px) scale(${s})`;
+  const f = $('#g-field'), vy = f.scrollTop + f.clientHeight / 2;
+  node.el.style.transform = `translate(${G.W / 2 - node.r}px,${vy - node.r}px) scale(${s})`;
   setTimeout(() => { G.busy = false; G.stack.push(node.id); gBuild(); }, 480);
 }
 function gUp(){ const from = G.stack.pop(); gBuild(); }
@@ -567,13 +595,34 @@ function renderSettings(){
   edStack = []; showSetMain(true);
   $('#set-topics-count').textContent = `${leaves.length}`;
   $('#set-sc').checked = S.settings.useShortcut;
+  $('#set-trash-count').textContent = S.trash.length ? `${S.trash.length}` : '';
+  $('#set-dev').checked = DEV; $('#dev-tools').hidden = !DEV;
 }
+let trashView = false;
+function renderTrash(){
+  trashView = true; showSetMain(false); $('#ed-add').hidden = true;
+  $('#set-crumbs').innerHTML = '<b>Корзина</b>';
+  S.trash = S.trash.filter(id => byId[id]);
+  $('#ed-list').innerHTML = S.trash.map(id => `<div class="item" data-id="${id}"><span class="dot" style="background:${colorOf(id)}"></span>
+    <div class="nm">${esc(byId[id].name)}<small>${esc(areaName(id))}</small></div><button data-act="back" aria-label="Вернуть">↩</button></div>`).join('')
+    || '<p class="hint">Пусто. Сюда попадают темы, которые ты убрал из розыгрыша.</p>';
+}
+$('#set-trash').onclick = renderTrash;
+$('#set-dev').onchange = e => { try { localStorage.setItem('tema-dnya.dev', e.target.checked ? '1' : '0'); } catch(err){} location.reload(); };
+$('#dev-fill').onclick = () => {
+  const p = pool().sort(() => Math.random() - .5).slice(0, 20);
+  p.forEach(l => S.progress[l.id] = {date: dayKey(new Date(Date.now() - Math.random() * 60 * 864e5)), notes: 'Тестовая заметка про «' + l.name + '»', photos: [], video: null});
+  save(); toast(`Добавлено ${p.length}`);
+};
+$('#dev-clear').onclick = async () => { if (await ask('Удалить все тестовые данные?', {input: false, ok: 'Удалить'})) { localStorage.removeItem(KEY); location.reload(); } };
 function showSetMain(on){
-  $('#set-main').hidden = !on; $('#set-editor').hidden = on;
+  if (on) trashView = false;
+  $('#set-main').hidden = !on; $('#set-editor').hidden = on; $('#ed-add').hidden = false;
   $('#set-crumbs').innerHTML = on ? '' : ['Темы', ...edStack.map(id => byId[id].name)].map((s, i, a) => i === a.length - 1 ? `<b>${esc(s)}</b>` : esc(s)).join(' › ');
 }
 $('#set-back').onclick = () => {
   if ($('#set-editor').hidden) return go('home');
+  if (trashView) return renderSettings();
   if (edStack.length) { edStack.pop(); renderEditor(); } else showSetMain(true);
 };
 $('#set-topics').onclick = () => { edStack = []; renderEditor(); };
@@ -594,6 +643,7 @@ function renderEditor(){
 }
 $('#ed-list').onclick = async e => {
   const row = e.target.closest('.item'); if (!row) return;
+  if (trashView) { if (e.target.closest('button')) { S.trash = S.trash.filter(x => x !== row.dataset.id); save(); toast('Вернул в розыгрыш'); renderTrash(); } return; }
   const n = byId[row.dataset.id], act = e.target.closest('button')?.dataset.act || (isLeaf(n) ? null : 'open');
   if (act === 'open') { edStack.push(n.id); renderEditor(); }
   if (act === 'ren') { const v = await ask('Название', {value: n.name}); if (v) { n.name = v; save(); renderEditor(); } }

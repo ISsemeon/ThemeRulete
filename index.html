@@ -45,11 +45,15 @@
 </section>
 
 <!-- РОЗЫГРЫШ -->
-<section class="screen tinted" id="s-spin">
-  <header class="bar"><button class="back" data-go="home" aria-label="Назад">←</button></header>
-  <div class="drum-stage" id="drum-stage">
-    <div class="drum" id="drum"></div>
-    <div class="drum-window"><i></i><i></i></div>
+<section class="screen" id="s-spin">
+  <header class="bar"><button class="back" data-go="home" aria-label="Назад">←</button><span class="tag">Розыгрыш</span></header>
+  <div class="machine" id="machine">
+    <div class="bulbs top"></div>
+    <div class="drum-stage" id="drum-stage">
+      <div class="drum" id="drum"></div>
+      <div class="drum-window"><i></i><i></i></div>
+    </div>
+    <div class="bulbs bottom"></div>
   </div>
   <div class="result" id="result">
     <div class="ticket">
@@ -59,6 +63,7 @@
       <h2 class="title-xl" id="r-title"></h2>
     </div>
     <button class="btn ink big" id="r-start">Начать · 20 минут</button>
+    <button class="btn white" id="r-trash">В корзину · другая тема</button>
   </div>
 </section>
 
@@ -73,6 +78,7 @@
     <button class="btn ink big" id="st-go">Начать</button>
     <button class="btn ink big pulse" id="st-record" hidden>Записать видео</button>
     <button class="btn white" id="st-early" hidden>Закончить раньше</button>
+    <button class="btn white" id="st-swap">В корзину · другая тема</button>
   </div>
 </section>
 
@@ -94,6 +100,7 @@
     <button class="btn white" id="rc-retake">Переснять</button>
     <button class="btn ink" id="rc-save">Сохранить</button>
   </div>
+  <button class="btn white" id="rc-novideo">Сохранить без видео</button>
   <label class="label" for="rc-notes">Заметки</label>
   <textarea id="rc-notes" placeholder="Главное, что понял…"></textarea>
 </section>
@@ -101,7 +108,7 @@
 <!-- ГАЛЕРЕЯ -->
 <section class="screen" id="s-gallery">
   <header class="bar"><button class="back" id="g-back" aria-label="Назад">←</button><div class="crumbs" id="g-crumbs"></div></header>
-  <div class="field" id="g-field"><svg id="g-lines"></svg></div>
+  <div class="field" id="g-field"><div id="g-space"></div><svg id="g-lines"></svg></div>
   <p class="g-empty" id="g-empty" hidden>Пройди первую тему —<br>здесь появится первый пузырь</p>
 </section>
 
@@ -136,6 +143,14 @@
     <input type="file" id="set-import-in" accept=".json,.txt,application/json,text/plain" hidden>
     <label class="rowbtn"><span>Таймер сверху экрана</span><input type="checkbox" class="switch" id="set-sc"></label>
     <p class="hint">Запускает системный таймер iPhone — он виден в Dynamic Island, пока ты пользуешься телефоном. Один раз создай в «Командах» команду <b>«Учёба 20»</b> с действием «Запустить таймер» на 20 минут.</p>
+    <button class="rowbtn" id="set-trash"><span>Корзина</span><small id="set-trash-count"></small><b>→</b></button>
+    <label class="label">Для разработчика</label>
+    <label class="rowbtn"><span>Тестовый режим</span><input type="checkbox" class="switch" id="set-dev"></label>
+    <p class="hint">Отдельные тестовые данные, твои настоящие не трогаются. Таймер — 20 секунд.</p>
+    <div id="dev-tools" hidden>
+      <button class="rowbtn" id="dev-fill"><span>＋20 пройденных тем</span><b>→</b></button>
+      <button class="rowbtn" id="dev-clear"><span>Очистить тестовые данные</span><b>→</b></button>
+    </div>
   </div>
   <div id="set-editor" hidden>
     <div class="list" id="ed-list"></div>
