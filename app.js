@@ -423,21 +423,23 @@ function gBuild(spawn){
   const w = kids.map(k => isLeaf(k) ? 1 : .55 + .45 * Math.sqrt(doneCount(k) / max));
   const sum = w.reduce((s, x) => s + x * x, 0) || 1;
   const base = Math.min(m * .19, Math.max(28, Math.sqrt(G.W * Hv * .26 / (Math.PI * sum))));
-  const cr = m * .17, rs = kids.map((k, i) => Math.min(m * .26, Math.max(base * w[i], minR(splitEmoji(k.name)[1]))));
-  // не влезает на экран — поле становится выше и прокручивается
-  const need = rs.reduce((s, r) => s + Math.PI * (r + 8) ** 2, Math.PI * (cr + 8) ** 2);
-  G.H = Math.max(Hv, need / (G.W * .42));
+  // чем больше пузырей, тем меньше центр и потолок размера; меньше подписи не ужимаем
+  const many = Math.min(1, kids.length / 25), maxR = m * (.22 - .07 * many);
+  // много пузырей — компактный вид: маленький круг со значком, подпись под ним
+  G.compact = kids.length > 12; field.classList.toggle('compact', G.compact);
+  const cr = m * (.17 - .06 * many), rs = kids.map((k, i) => G.compact ? 22 + 16 * (w[i] - .55) / .45 : Math.max(minR(splitEmoji(k.name)[1]), Math.min(maxR, base * w[i])));
+  const [ce, cn] = parent ? splitEmoji(parent.name) : ['', 'Моё поле'];
+  G.center = mkBubble({id: pid || null, center: true, color: tint, r: cr, icon: pid ? areaIcon(pid) : '', name: cn, count: total, x: 0, y: 0});
+  if (G.compact) G.center.cr += 14;
+  G.nodes = kids.map((k, i) => mkBubble({id: k.id, leaf: isLeaf(k), color: colorOf(k.id), r: rs[i], icon: areaIcon(k.id), name: splitEmoji(k.name)[1], compact: G.compact,
+    count: isLeaf(k) ? 0 : doneCount(k), x: 0, y: 0, delay: i * 40}));
+  // не влезает на экран — поле становится выше и прокручивается (считаем с шириной подписей)
+  const need = [G.center, ...G.nodes].reduce((s, n) => s + Math.PI * (n.cr + 6) ** 2, 0);
+  G.H = Math.max(Hv, need / (G.W * (G.compact ? .62 : .38)));
   $('#g-space').style.height = G.H + 'px'; $('#g-lines').style.height = G.H + 'px';
   field.scrollTop = (G.H - Hv) / 2;
-  // центр
-  const [ce, cn] = parent ? splitEmoji(parent.name) : ['', 'Моё поле'];
-  G.center = mkBubble({id: pid || null, center: true, color: tint, r: cr, icon: pid ? areaIcon(pid) : '', name: cn, count: total, x: G.W / 2, y: G.H / 2});
-  const sx = G.W / 2, sy = G.H / 2;
-  G.nodes = kids.map((k, i) => {
-    const [e, n] = splitEmoji(k.name), ang = i / kids.length * Math.PI * 2 + Math.random() * .3;
-    return mkBubble({id: k.id, leaf: isLeaf(k), color: colorOf(k.id), r: rs[i], icon: areaIcon(k.id), name: n,
-      count: isLeaf(k) ? 0 : doneCount(k), x: sx + Math.cos(ang) * 20, y: sy + Math.sin(ang) * 20, delay: i * 40});
-  });
+  G.center.x = G.W / 2; G.center.y = G.H / 2;
+  G.nodes.forEach((n, i) => { const ang = i / G.nodes.length * Math.PI * 2 + Math.random() * .3; n.x = G.W / 2 + Math.cos(ang) * 20; n.y = G.H / 2 + Math.sin(ang) * 20; });
   cancelAnimationFrame(G.raf); G.raf = requestAnimationFrame(gStep);
 }
 // подбор шрифта: самое длинное слово влезает в строку, всего не больше 3 строк
@@ -450,22 +452,33 @@ function fitText(t, w, max, min, script){
     for (const wd of words){ const ww = mctx.measureText(wd).width; if (ww > w) { ok = false; break; } if (line && line + sp + ww > w) { lines++; line = ww; } else line += (line ? sp : 0) + ww; }
     if (ok && lines <= 3) break;
   }
-  return {fs, lines};
+  // самое длинное слово при минимальном шрифте — плашка может стать шире круга, но по центру
+  mctx.font = script ? `${fs}px Lobster` : `700 ${fs}px "PT Serif"`;
+  const wordW = Math.max(...words.map(wd => mctx.measureText(wd).width));
+  return {fs, lines, wordW};
 }
 const longestWord = t => Math.max(...t.split(/\s+/).map(w => w.length));
 // минимальный радиус, при котором название влезает в 3 строки шрифтом 12px
-const minR = t => Math.max(40, 1.8 * Math.min(t.length, 52), 4.8 * longestWord(t) + 14);
+const minR = t => Math.max(30, Math.min(44, 1.3 * t.length));
 function mkBubble(o){
   const el = document.createElement('div');
   el.className = 'bubble pop' + (o.center ? ' center' : '');
   el.style.cssText = `--bc:${o.color};width:${2 * o.r}px;height:${2 * o.r}px;animation-delay:${o.delay || 0}ms`;
   // подпись целиком внутри круга: шрифт под длину, иконка — на оставшееся место
   const name = o.name.length > 52 ? o.name.slice(0, 50) + '…' : o.name;
+  if (o.compact) {
+    const mw = 2 * (o.r + 28) - 6;
+    el.innerHTML = `${o.icon.replace('class="aico"', `class="aico" style="width:${o.r * 1.25}px;height:${o.r * 1.25}px"`)}<div class="n" style="--fs:12px;--mw:${mw}px">${esc(name)}</div>${o.count ? `<div class="k">${o.count}</div>` : ''}`;
+    o.cr = o.r + 28; o.hw = Math.max(o.cr, mw / 2 + 2);
+  } else {
   const W = 1.5 * o.r, Wt = W - (o.center ? 6 : 24), fit = fitText(name, Wt, o.center ? 24 : 17, o.center ? 14 : 11, o.center);
   const fs = fit.fs, lines = fit.lines, ih = Math.min(o.r * (o.center ? .8 : .9), 1.6 * o.r - lines * fs * 1.15 - 16);
   const icon = o.icon && ih >= 20 ? o.icon.replace('class="aico"', `class="aico" style="width:${ih}px;height:${ih}px"`) : '';
-  el.innerHTML = `${icon}<div class="n" style="--fs:${fs}px;--mw:${W}px">${esc(name)}</div>${o.count && !o.center ? `<div class="k">${o.count}</div>` : ''}`;
+  el.innerHTML = `${icon}<div class="n" style="--fs:${fs}px;--mw:${Math.max(W, fit.wordW + 24)}px">${esc(name)}</div>${o.count && !o.center ? `<div class="k">${o.count}</div>` : ''}`;
+  o.cr = Math.max(o.r, Math.max(W, fit.wordW + 24) / 2 + 4); o.hw = o.cr;
+  }
   $('#g-field').appendChild(el);
+  // радиус столкновений: круг или половина подписи, что больше
   const node = Object.assign(o, {el, vx: 0, vy: 0, ph: Math.random() * 6.28});
   el.addEventListener('pointerdown', e => gDown(e, node));
   return node;
@@ -477,11 +490,11 @@ function gStep(t){
     if (a === G.drag?.node) continue;
     a.vx += (cx - a.x) * .0022 + Math.sin(t * .0007 + a.ph) * .035;
     a.vy += (cy - a.y) * .0022 + Math.cos(t * .0009 + a.ph) * .035;
-    if (a.x < a.r) a.vx += (a.r - a.x) * .08; if (a.x > G.W - a.r) a.vx -= (a.x - G.W + a.r) * .08;
+    if (a.x < a.hw) a.vx += (a.hw - a.x) * .08; if (a.x > G.W - a.hw) a.vx -= (a.x - G.W + a.hw) * .08;
     if (a.y < a.r) a.vy += (a.r - a.y) * .08; if (a.y > G.H - a.r) a.vy -= (a.y - G.H + a.r) * .08;
   }
   for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++){
-    const a = all[i], b = all[j], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || .01, ov = a.r + b.r + 10 - d;
+    const a = all[i], b = all[j], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || .01, ov = a.cr + b.cr + 6 - d;
     if (ov <= 0) continue;
     const ux = dx / d, uy = dy / d, f = ov * .12;
     if (a !== C && a !== G.drag?.node) { a.vx -= ux * f; a.vy -= uy * f; }
@@ -489,7 +502,12 @@ function gStep(t){
   }
   let lines = '';
   for (const a of all){
-    if (a !== C && a !== G.drag?.node) { a.vx *= .86; a.vy *= .86; a.x += a.vx; a.y += a.vy; }
+    if (a !== C && a !== G.drag?.node) {
+      a.vx *= .86; a.vy *= .86; a.x += a.vx; a.y += a.vy;
+      // жёсткая граница: подпись не уходит за край экрана
+      const hw = Math.min(a.hw, G.W / 2); a.x = Math.min(G.W - hw, Math.max(hw, a.x));
+      a.y = Math.min(G.H - a.cr, Math.max(a.r + 4, a.y));
+    }
     a.el.style.transform = `translate(${a.x - a.r}px,${a.y - a.r}px)`;
     if (a !== C) lines += `<line x1="${C.x}" y1="${C.y}" x2="${a.x}" y2="${a.y}" stroke="${a.color}"/>`;
   }

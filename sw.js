@@ -1,5 +1,5 @@
 // Офлайн-кэш. При изменении файлов поднять версию.
-const CACHE = 'tema-dnya-v11';
+const CACHE = 'tema-dnya-v12';
 const FILES = ['./', './index.html', './style.css', './app.js', './topics.js', './manifest.json', './icon-180.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
